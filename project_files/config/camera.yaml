@@ -1,0 +1,11 @@
+# Filled in during Phase 2. Re-do if the camera, zoom or framing ever changes.
+frame_size_wh: null          # [width, height] of the video frames used for the points below
+
+# At least 4 widely spread, fixed, easy to identify points on the road surface.
+# image_points are pixels on a frame extracted from the VIDEO (not a 4:3 still).
+# world_points are metres on a local ground plane you define (origin and axes noted below).
+image_points: []             # [[px, py], ...]
+world_points: []             # [[x_m, y_m], ...]
+world_frame_notes: ""        # where is the origin, which way is +x and +y, how distances were obtained
+homography: null             # 3x3, computed by calibrate.py, never hand edited
+validation_error_m: null     # error on a held-out known point

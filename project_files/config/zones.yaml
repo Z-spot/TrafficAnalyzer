@@ -1,0 +1,10 @@
+# Filled in during Phase 3 with scripts/pick_zones.py.
+# Polygons are in image pixels on the same frame size as camera.yaml.
+# Map the real movement set by hand first, slip lanes included.
+approaches: {}
+# example shape:
+# north:
+#   entry: [[x, y], ...]
+#   exit:  [[x, y], ...]
+movements: []
+# example: [{name: north_to_east, entry: north, exit: east, type: right_turn}]

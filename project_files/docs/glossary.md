@@ -1,0 +1,22 @@
+# Glossary
+
+- Detection: per-frame boxes with class and confidence. No memory between frames.
+- Tracking (tracking-by-detection): links detections across frames so one physical vehicle keeps one track_id.
+- ByteTrack: tracker that also uses low-confidence detections when matching, then drops them from the output. Fast, strong default. No appearance model.
+- BoT-SORT: ByteTrack-style matching plus appearance re-identification and camera-motion compensation. Slower, better under occlusion.
+- ID switch: the tracker gives one vehicle a new ID mid-path, or swaps IDs between two vehicles. The main quality problem to measure.
+- Homography: 3x3 matrix mapping points on one plane (the road in the image) to another (the road in metres). Needs 4 or more known point pairs.
+- Ground plane: the flat road surface. Homography is only valid for points on it, which is why we use the bottom centre of the box.
+- Anchor point: bottom centre of a bounding box, where the vehicle touches the road.
+- Movement: one origin to destination path through the junction, for example north approach to east exit.
+- Turning movement count (TMC): number of vehicles per movement per time bin, usually 15 minutes.
+- Phase: a period when a set of non-conflicting movements has right of way.
+- Cycle: one full pass through all phases. Cycle length is the time from one phase start to the next start of the same phase.
+- Fixed-time signal: constant cycle and splits. Actuated or adaptive signal: timing changes with detected demand.
+- Effective green: green time as seen from traffic behaviour (discharge start to end), as opposed to the lamp being lit.
+- Discharge: queued vehicles starting to move when the signal gives them right of way.
+- Saturation flow: vehicles per hour of green that a queue can discharge.
+- Stopped delay: time a vehicle spends with near-zero speed.
+- KPI: key performance indicator. Here: throughput, queue length, delay, travel time, saturation flow, lane utilisation.
+- SUMO: open-source traffic microsimulator. Phase 5.
+- SUMO-RL: Gymnasium interface over SUMO for traffic signal control with RL. Phase 6.

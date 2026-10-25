@@ -1,0 +1,17 @@
+# Pipeline settings. Nothing scene-specific belongs in code, it belongs here.
+detector:
+  model: yolo26m.pt        # confirm this weight name against the installed ultralytics version
+  imgsz: 1280              # raise before trying tiled inference
+  conf: 0.25
+  iou: 0.7
+  device: null             # null = auto. Set to "cpu" or 0 once GPU status is known
+  # COCO class ids: check against model.names before trusting these
+  vehicle_classes: [2, 3, 5, 7]   # car, motorcycle, bus, truck in standard COCO
+
+tracker:
+  type: bytetrack          # switch to botsort only if ID switches are measured to be a problem
+
+video:
+  # Always read fps from the file. This value is only a cross-check.
+  expected_fps: 25
+  roi: null                # [x1, y1, x2, y2] crop in pixels, or null for full frame
