@@ -23,7 +23,7 @@ Phase 1 in progress. The detect, track, smooth and render chain works on a 150 f
 - Vehicles hidden by others for long stretches still lose their box. Stitching bridges up to 60 frames. Stronger model (l or x) or homography based prediction (Phase 2) may help
 - Skill `codebase-to-course` installed in .claude/skills/. The upstream repo has no LICENSE file. Not run yet. .claude/ is not gitignored
 
-- v3 zone (32 points) pulls in the bottom row of the car park (7 parked cars). Re-click the upper-left edge below that row
+- Active zone restored to the v2 44-point polygon (2026-10-27). The v3 32-point zone is kept in config/zones.v3.yaml. v3 zone pulls in the bottom row of the car park (7 parked cars). Re-click the upper-left edge below that row
 - Top-of-frame cars start late because ByteTrack needs score >= 0.35 to start a track (detector sees them earlier at 0.10-0.25). Not fixed by a bigger zone
 
 ## Next task
