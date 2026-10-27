@@ -31,6 +31,8 @@ The owner (Zane) is a cybersecurity graduate, comfortable with Python and ML, ne
 - config/  every scene-specific number lives here (camera.yaml, zones.yaml, pipeline.yaml)
 - scripts/  small interactive helpers (point picker, zone picker)
 - data/raw/ video (gitignored), data/interim/ trajectory parquet, data/processed/ counts and KPIs
+- data/interim/clips/  dev video cuts (gitignored)
+- data/interim/detections/  cached detector output (gitignored), not the trajectory schema
 - docs/  plan.md, status.md, decisions.md, glossary.md
 - notebooks/  exploration only, never pipeline logic
 
@@ -44,6 +46,8 @@ The owner (Zane) is a cybersecurity graduate, comfortable with Python and ML, ne
 6. Do not add a dependency without asking.
 7. Never read frame rate from assumptions. Read it from the video file and store it with the output.
 8. Finish and commit one phase before starting the next. Ask before starting a new phase.
+9. timestamp_s comes from the container's presentation timestamps, never from frame_idx divided by an assumed fps.
+10. Never estimate speed or delay from a single frame interval. Frame spacing varies by about 5 percent, so smooth over several frames.
 
 ## Trajectory schema (Parquet, one row per detection per frame)
 
@@ -55,8 +59,11 @@ world_x, world_y (float, metres, added in Phase 2, null before calibration)
 
 Fill these in as the CLI is built. Keep this list accurate.
 
-- Set up: create .venv, then install from pyproject.toml
-- Run detect + track on a clip: `python -m trafficflow.cli track --video data/raw/CLIP.mp4 --out data/interim/CLIP.parquet`
+- Set up: `uv sync` (Python 3.12). The venv lives OUTSIDE the project because ~/Documents is synced by iCloud, which evicts files and hangs Python: `export UV_PROJECT_ENVIRONMENT=$HOME/.venvs/trafficflow` before every uv command, and use `uv run --no-sync`
+- Whole chain on a frame range: `python -m trafficflow.cli run --name NAME --start-frame N --end-frame M` (detect, track with road mask, smooth, render raw and smoothed debug videos). Files go to data/interim/
+- One stage from cached files: `cli detect` (slow, GPU, caches all detections), then `cli track`, `cli smooth`, `cli render` (seconds each, with `--name NAME`)
+- Draw the road mask by clicking (opens a window, run it in your own Terminal): `python scripts/pick_road.py`. Starts empty and replaces the saved mask. `--keep` starts from the saved polygons
+- Track stats to compare outputs: `python scripts/track_stats.py a.parquet b.parquet`
 - Tests: `pytest -q`
 
 ## Working style

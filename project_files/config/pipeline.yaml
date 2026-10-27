@@ -1,17 +1,35 @@
 # Pipeline settings. Nothing scene-specific belongs in code, it belongs here.
 detector:
-  model: yolo26m.pt        # confirm this weight name against the installed ultralytics version
+  model: yolo26m.pt        # confirm this weight name against the installed ultralytics version. Try yolo26l / yolo26x if speed allows
   imgsz: 1280              # raise before trying tiled inference
-  conf: 0.25
+  conf: 0.10               # low on purpose: ByteTrack's second matching stage uses scores from 0.1 up to tracker.track_activation_threshold
   iou: 0.7
-  device: null             # null = auto. Set to "cpu" or 0 once GPU status is known
+  device: mps              # Apple M4 GPU, verified by scripts/check_env.py
   # COCO class ids: check against model.names before trusting these
   vehicle_classes: [2, 3, 5, 7]   # car, motorcycle, bus, truck in standard COCO
 
 tracker:
   type: bytetrack          # switch to botsort only if ID switches are measured to be a problem
+  track_activation_threshold: 0.25
+  lost_track_buffer: 30            # frames a lost track is kept alive
+  minimum_matching_threshold: 0.8
+  minimum_consecutive_frames: 1
+  min_inside_fraction: 0.5         # keep a track if its bottom-centre is on the road (zones.yaml road_mask) for at least this share of its frames
 
 video:
   # Always read fps from the file. This value is only a cross-check.
-  expected_fps: 25
+  expected_fps: 30
   roi: null                # [x1, y1, x2, y2] crop in pixels, or null for full frame
+
+smoothing:                 # offline clean-up of tracks, see trafficflow/smooth.py
+  max_gap_frames: 10       # fill holes in a track up to this long by linear interpolation (raised to stitch_max_gap_frames if larger)
+  min_track_frames: 15     # drop tracks shorter than this (about 0.5 s) as fragments
+  box_window: 7            # centred rolling mean window (frames) for box centre
+  size_window: 15          # longer window for box width and height
+  # Stitching: rejoin a track that was lost and restarted under a new ID (same class, motion-consistent)
+  stitch_max_gap_frames: 60        # longest hidden stretch to bridge (2 s)
+  stitch_base_tol_px: 60           # position tolerance at zero gap, full-frame pixels
+  stitch_tol_per_frame_px: 3       # extra tolerance per frame of gap
+  stitch_ambiguity_ratio: 1.5      # skip a link if a rival candidate (present at the same time) is within this factor of the best
+  stitch_ambiguity_min_px: 25      # ...or closer than this many pixels, whatever the best error is
+  stitch_velocity_frames: 8        # rows at a track end used to estimate its velocity
