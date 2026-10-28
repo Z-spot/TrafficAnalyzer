@@ -1,0 +1,225 @@
+      <section class="module" id="module-3" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">Name badges</h1>
+      <p class="module-subtitle">How the tracker gives one car the same ID in every frame, and what makes it lose that ID.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The spotter forgets everything</h2>
+        <p>The spotter looks at each picture alone. It has no idea that the car in frame 300 is the same car as in frame 301.</p>
+        <p>The <span class="term" data-definition="The program that gives each object a consistent ID across frames. Here it is ByteTrack, from the supervision library.">tracker</span> adds that memory. It gives every car a <span class="term" data-definition="A number that stays attached to one object from frame to frame. Same car, same number. Different car, different number.">track ID</span>, which we can think of as a name badge.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🏷</div>
+          <div class="callout-content">
+            <strong class="callout-title">How the tracker decides it is the same car</strong>
+            <p>It predicts where each car should be in the next frame, using its recent motion. Then it matches each new box to the nearest prediction that makes sense.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A conversation between the actors</h2>
+        <p>Press Next to watch a made-up example, shown for teaching, not a real log. A bus hides a car for a moment, and the tracker has to decide what to do.</p>
+
+        <div class="chat-window" id="chat-m3">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="spotter" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Spotter</span>
+                <p>Frame 300: I see a bus at 0.91, and a car behind it at 0.82.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="tracker" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">T</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Tracker</span>
+                <p>Both are new to me. I will give each one a fresh badge.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="spotter" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Spotter</span>
+                <p>Frame 340: the bus is still there, but I cannot see the car behind it any more.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="tracker" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">T</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Tracker</span>
+                <p>I will keep that car's badge for about 30 frames, in case it comes back where I expect.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="spotter" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Spotter</span>
+                <p>Frame 352: the car is back, and I see it at 0.88.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="editor" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">E</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">Editor</span>
+                <p>If the tracker gave it a new badge, I can join the two pieces afterwards.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-typing" style="display:none">
+            <div class="chat-avatar" id="typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The code that hands out badges</h2>
+        <p>Every frame goes to the tracker, one at a time, in order. The tracker returns the same boxes, now with an ID attached.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">det = tracker.update_with_detections(det)</span>
+<span class="code-line">det = det[det.tracker_id != -1]</span>
+<span class="code-line">if len(det) == 0:</span>
+<span class="code-line">    continue</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Give the tracker this frame's boxes. It returns them with badges where it has matched them.</p>
+              <p class="tl">Keep only the boxes that now have a badge. The rest are not confirmed yet.</p>
+              <p class="tl">If nothing is left, there is nothing to record for this frame.</p>
+              <p class="tl">Move on to the next frame.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Empty frames still matter</strong>
+            <p>When a frame has no cars at all, the code still sends the tracker an empty set of boxes. The tracker counts frames to decide when a badge has expired, so skipping a frame would make it wrong.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The three settings that decide a badge's life</h2>
+        <p>Three numbers in config/pipeline.yaml control when a badge is handed out and when it is taken back.</p>
+
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">track_activation_threshold: 0.25</code>
+            <span class="badge-desc">A new car needs a score of 0.25 plus 0.1, which is 0.35, before it gets a badge. Weak boxes can still keep an existing car going.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">lost_track_buffer: 30</code>
+            <span class="badge-desc">A car that disappears keeps its badge for 30 frames, about one second. After that the badge is retired.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">minimum_matching_threshold: 0.8</code>
+            <span class="badge-desc">How well a new box has to line up with a prediction before the tracker accepts it as the same car.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m3">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The tracker only remembers a lost car for about one second. When the car reappears, it is treated as new. That is why the editor, covered in the next module, tries to join the pieces back together."
+               data-explanation-wrong="Not quite. The tracker keeps a lost badge for only 30 frames, about one second. After that the badge is retired, and the car starts again with a new one.">
+            <h3 class="quiz-question">A car drives behind a bus for two seconds, about 60 frames. What is most likely to happen to its track?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It keeps the same ID, because the tracker never forgets a car</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The track ends after about a second, and the car comes back with a new ID</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The car is deleted from the video and never appears again</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. A longer memory gives more chances to rejoin a car, but it also gives a stale badge more chances to be attached to the wrong car. Earlier tests showed that 45 and 60 frames gave no real gain."
+               data-explanation-wrong="Not quite. Keeping badges longer helps with hidden cars, but it also means an old badge can be matched to a different car. Tests on this footage showed no real gain from going past 30 frames.">
+            <h3 class="quiz-question">You want fewer name changes, so you raise lost_track_buffer to 300 frames. What is the trade-off?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>There is no trade-off. A longer memory is strictly better.</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>A stale badge can be matched to the wrong car more often, because it stays alive longer</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The video takes longer to render, and nothing else changes</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. A lost badge expires after a count of frames. If empty frames were skipped, the count would be wrong and badges would last too long."
+               data-explanation-wrong="Not quite. The tracker measures time in frames, so every frame has to pass through it, even empty ones. Skipping frames would throw off its count.">
+            <h3 class="quiz-question">Why does the code send the tracker a frame with no cars in it?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>To waste a little time, so the video looks smoother</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The tracker counts frames, so skipping empty ones would make its clock wrong</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The detector always finds at least one car in every frame</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m3')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

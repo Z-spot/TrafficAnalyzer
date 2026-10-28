@@ -1,0 +1,211 @@
+      <section class="module" id="module-5" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">The saved game</h1>
+      <p class="module-subtitle">Why the slow step is saved, what each output file holds, and what is still open.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Save the slow part</h2>
+        <p>Detection is the slow step. On the 30-second test run it takes about 0.13 seconds per frame, so the full 21-minute video would take about 84 minutes.</p>
+        <p>The program keeps those detections in a <span class="term" data-definition="A stored copy of work already done, so it does not have to be done again. Here, the detections are the expensive part to redo.">cache</span>. Every later stage reads that copy, so it can be run again in seconds.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">👁</div>
+            <h4 class="pattern-title">Detect</h4>
+            <p class="pattern-desc">Slow, about 84 minutes for the full video. Saved to a file when done.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🏷</div>
+            <h4 class="pattern-title">Track</h4>
+            <p class="pattern-desc">Reads the saved detections, runs in seconds.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">✂️</div>
+            <h4 class="pattern-title">Smooth</h4>
+            <p class="pattern-desc">Reads the raw tracks, runs in seconds.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">🎬</div>
+            <h4 class="pattern-title">Render</h4>
+            <p class="pattern-desc">Draws the boxes on a copy of the video. Takes minutes, not hours.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One command, four stages</h2>
+        <p>The run command runs the whole <span class="term" data-definition="A chain of processing steps, where each step takes the previous step output as its input.">pipeline</span>: all four stages. Each one writes its output, and the next one picks it up.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">do_detect(args.video, args.start_frame, args.end_frame, p["dets"])</span>
+<span class="code-line">do_track(args.video, p["dets"], p["raw"])</span>
+<span class="code-line">do_smooth(args.video, p["raw"], p["smooth"])</span>
+<span class="code-line">do_render(args.video, p["raw"], p["raw_video"], args.debug_height, "RAW")</span>
+<span class="code-line">do_render(args.video, p["smooth"], p["smooth_video"], args.debug_height, "SMOOTHED")</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">First, spot the cars in every frame in the range, and save those detections.</p>
+              <p class="tl">Next, follow the cars and save the raw tracks, before any clean-up.</p>
+              <p class="tl">Then run the editor, and save the cleaned tracks next to the raw ones.</p>
+              <p class="tl">Draw a video from the raw tracks, so you can compare it with the editor's version.</p>
+              <p class="tl">Draw a second video from the cleaned tracks.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One row, one car, one frame</h2>
+        <p>Every output file is a <span class="term" data-definition="Parquet is a compact file format for tables. It stores each column together, loads quickly, and keeps each column type fixed.">Parquet</span> table. Each row is one car in one frame, with the same columns in every file. Those columns are a fixed contract.</p>
+
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">frame_idx</code>
+            <span class="badge-desc">Which frame of the video this row belongs to, counted from zero.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">timestamp_s</code>
+            <span class="badge-desc">When that frame happened, in seconds, taken from the video file.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">track_id</code>
+            <span class="badge-desc">The name badge. The same car keeps the same number across its rows.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">class_name</code>
+            <span class="badge-desc">What the car is, such as car, bus or truck.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">anchor_x, anchor_y</code>
+            <span class="badge-desc">The bottom centre of the box, where the car meets the road. Used for every road calculation.</span>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">📦</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why store the settings with the output</strong>
+            <p>Each file records the frame range, the frame rate read from the video, and the model used. Six months from now, you can tell what produced it.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Where the project stands</h2>
+        <p>The chain works end to end on a 30-second test. Some problems are known and not yet fixed.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-4)">🛵</div>
+            <div>
+              <strong>Motorcycles are often missed</strong>
+              <p>Deferred. The spotter needs more detail to see them.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🔭</div>
+            <div>
+              <strong>Cars at the top of the frame start late</strong>
+              <p>The spotter sees them earlier, but with low confidence, so the tracker does not start them until later.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🙈</div>
+            <div>
+              <strong>Hidden cars lose their badge</strong>
+              <p>Stitching bridges gaps of up to 2 seconds. Longer hiding is not fixed yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m5">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Detections are saved before any filtering, so the road outline only matters from the track stage on. The slow step is not repeated."
+               data-explanation-wrong="Not quite. Detection is saved before any filtering, so it does not depend on the road outline. Only the track stage and the stages after it need to run again.">
+            <h3 class="quiz-question">You change the road outline. Which stage do you need to run again?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Detect, from the start, which takes about 84 minutes</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Track onward, which takes seconds, using the saved detections</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Nothing, because the outline is only drawn on the video</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. The raw tracks are kept on purpose. Re-running only the smoothing takes seconds and writes its own file, so you can compare the two results."
+               data-explanation-wrong="Not quite. The raw track file is kept so you can try a new smoothing setting cheaply. Re-running the smooth stage writes its own file and leaves the earlier one for comparison.">
+            <h3 class="quiz-question">You want to try a different smoothing setting on the 30-second run. What is the cheapest correct way?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Run the whole pipeline again from the video</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Run only the smooth stage on the saved raw tracks, with a new output name</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Open the saved parquet file and edit the numbers by hand</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The frame rate is read from the video file and stored with the output. A hard-coded 30 would quietly be wrong for a recording at a different rate."
+               data-explanation-wrong="Not quite. The project's rule is that the frame rate comes from the video file, never from an assumed number. Hard-coding 30 breaks that for any recording at a different rate.">
+            <h3 class="quiz-question">A teammate hard-codes 30 frames per second into the code, saying it is simpler. Which project rule does this break?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No rule. Hard-coding a number is always fine for a fixed camera.</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The rule that the frame rate must be read from the video file, not assumed</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The rule that the output table must never have more than seven columns</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m5')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

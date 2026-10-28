@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inside the Traffic Pipeline</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!--
+    CUSTOMIZE PER COURSE — change only the three accent variables below.
+    Options:
+      vermillion  #D94F30 / #C4432A / #FDEEE9 / #E8836C  (default)
+      coral       #E06B56 / #C85A47 / #FDECEA / #E89585
+      teal        #2A7B9B / #1F6280 / #E4F2F7 / #5A9DB8
+      amber       #D4A843 / #BF9530 / #FDF5E0 / #E0C070
+      forest      #2D8B55 / #226B41 / #E8F5EE / #5AAD7A
+  -->
+  <style>
+    :root {
+      --color-accent:       #2A7B9B;
+      --color-accent-hover: #1F6280;
+      --color-accent-light: #E4F2F7;
+      --color-accent-muted: #5A9DB8;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">Inside the Traffic Pipeline</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <!--
+          One <button> per module. Replace MODULE_N_NAME with the actual module title.
+
+          <button class="nav-dot" data-target="module-1" data-tooltip="MODULE_1_NAME" role="tab" aria-label="Module 1: MODULE_1_NAME"></button>
+          <button class="nav-dot" data-target="module-2" data-tooltip="MODULE_2_NAME" role="tab" aria-label="Module 2: MODULE_2_NAME"></button>
+          ...
+        -->
+                <button class="nav-dot" data-target="module-1" data-tooltip="What happens to one video" role="tab" aria-label="Module 1: What happens to one video"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="The spotter (detector)" role="tab" aria-label="Module 2: The spotter (detector)"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="Name badges (tracker)" role="tab" aria-label="Module 3: Name badges (tracker)"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="The film editor (cleaning up)" role="tab" aria-label="Module 4: The film editor (cleaning up)"></button>
+        <button class="nav-dot" data-target="module-5" data-tooltip="The saved game (outputs)" role="tab" aria-label="Module 5: The saved game (outputs)"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->
+      <section class="module" id="module-1" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">What happens to one video</h1>
+      <p class="module-subtitle">Follow the program from a 21-minute recording of a junction to a finished, annotated video.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">What this program does</h2>
+        <p>A camera on the 20th floor recorded this junction for about 21 minutes. The program goes through every <span class="term" data-definition="One still picture in the video. Video is just many of these shown one after another, about 30 each second.">frame</span> and writes down each vehicle it sees: where it is, what kind it is, and when it was there.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">👁</div>
+            <h4 class="pattern-title">Spot</h4>
+            <p class="pattern-desc">Find the cars in each picture.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🏷</div>
+            <h4 class="pattern-title">Follow</h4>
+            <p class="pattern-desc">Give each car the same name tag in every picture it appears in.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">✂️</div>
+            <h4 class="pattern-title">Clean</h4>
+            <p class="pattern-desc">Drop parked cars and fill in the gaps where a car briefly vanished.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">🎬</div>
+            <h4 class="pattern-title">Show</h4>
+            <p class="pattern-desc">Draw the boxes on a copy of the video so you can check the work with your own eyes.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The whole chain, as a flow</h2>
+        <p>Press Next Step to send one piece of work down the line. Each actor does one job and passes the result on.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"The video file holds every frame, in order"},
+          {"highlight":"flow-actor-1","label":"Each frame goes to the spotter","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"The spotter boxes every car it sees in this frame","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"Name badges link each box to a car from earlier frames","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-4","label":"The editor drops parked cars and joins broken tracks","packet":true,"from":"actor-4","to":"actor-5"},
+          {"highlight":"flow-actor-5","label":"The renderer draws the result onto a copy of the video"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">🎞</div>
+              <span>Video file</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">👁</div>
+              <span>Spotter</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">🏷</div>
+              <span>Name badges</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">✂️</div>
+              <span>Editor</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">🎬</div>
+              <span>Renderer</span>
+            </div>
+          </div>
+
+          <div class="flow-packet" id="flow-packet"></div>
+
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Each frame needs a time, from the file</h2>
+        <p>Speed comes from time, so every frame needs a correct time stamp. The program reads the times that the camera wrote into the file, and does not assume a fixed rate.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">gaps = np.diff(pts)</span>
+<span class="code-line">if gaps.min() &lt;= 0 or gaps.max() &gt; 1.5 * np.median(gaps):</span>
+<span class="code-line">    raise ValueError(f"unexpected frame gaps in ticks: ...")</span>
+<span class="code-line">return (pts - pts[0]) * num / den</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Measure the gap between every pair of neighbouring frames.</p>
+              <p class="tl">If any gap is zero or negative, or far longer than normal, a frame has gone missing or been repeated.</p>
+              <p class="tl">In that case, stop with an error rather than hand back wrong times.</p>
+              <p class="tl">Otherwise, count from the first frame and convert the ticks into seconds.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why not just use 30 frames per second?</strong>
+            <p>Frames are not spaced evenly. Gaps vary by about 5 percent, and an assumed rate drifts away from the real clock with no warning.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Reading frames in order</h2>
+        <p>The program reads the video one frame at a time, from the start. It skips ahead by reading past frames without turning them into pictures, because that is faster.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">for idx in range(start_frame, end_frame):</span>
+<span class="code-line">    ok, frame = cap.read()</span>
+<span class="code-line">    if not ok:</span>
+<span class="code-line">        return</span>
+<span class="code-line">    yield idx, frame</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For each frame number in the range we want.</p>
+              <p class="tl">Ask the video reader for the next picture. It also says whether the read worked.</p>
+              <p class="tl">If the read failed, the video has run out, so stop cleanly.</p>
+              <p class="tl">Otherwise, hand back the frame number and the picture, one at a time, so memory stays small.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Where things live</h2>
+        <p>The project is split into a few folders. Each one has one job, which keeps the code easy to find.</p>
+
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">src/trafficflow/</span>
+            <span class="ft-desc">The pipeline code itself</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">video.py</span><span class="ft-desc">Reads frames and timestamps</span></div>
+              <div class="ft-file"><span class="ft-name">detect.py</span><span class="ft-desc">The spotter (YOLO model)</span></div>
+              <div class="ft-file"><span class="ft-name">track.py</span><span class="ft-desc">Name badges (ByteTrack)</span></div>
+              <div class="ft-file"><span class="ft-name">smooth.py</span><span class="ft-desc">The editor: stitching and clean-up</span></div>
+              <div class="ft-file"><span class="ft-name">render.py</span><span class="ft-desc">Draws boxes onto a copy of the video</span></div>
+              <div class="ft-file"><span class="ft-name">cli.py</span><span class="ft-desc">The commands you type in the terminal</span></div>
+            </div>
+          </div>
+          <div class="ft-folder">
+            <span class="ft-name">config/</span>
+            <span class="ft-desc">Every scene-specific number lives here, not in the code</span>
+          </div>
+          <div class="ft-folder">
+            <span class="ft-name">scripts/</span>
+            <span class="ft-desc">Small helpers, such as the road picker</span>
+          </div>
+          <div class="ft-folder">
+            <span class="ft-name">data/</span>
+            <span class="ft-desc">The video (never edited) and the saved outputs</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m1">
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. The camera's clock keeps running even when a frame is lost, but a frame count does not. That is why the code reads the file's own times."
+               data-explanation-wrong="Not quite. A missing frame shifts the position of every later frame in the count, so every later time is off. The file's own timestamps are the fix.">
+            <h3 class="quiz-question">A 20-minute recording loses one frame in the middle. A colleague computes time as frame number divided by 30. What happens to every time after the lost frame?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Nothing changes, because one frame is too small to matter</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Only the lost frame is wrong</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Every later time is shifted, because frame numbers no longer match real time</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. One gap is noise from the camera, so averaging over several frames gives a steadier number."
+               data-explanation-wrong="Not quite. Rounding hides the jump but does not remove it. Smoothing over several frames is what the project rules call for.">
+            <h3 class="quiz-question">Your speed readings jump up and down by a few percent from one frame to the next. What is the right fix?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Round every speed to a whole number</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Average the speed over several frames before reporting it</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Buy a camera with a higher frame rate, so the jumps go away</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The bottom centre is the closest point in the picture to where the car touches the road. The middle of a tall box floats above the road."
+               data-explanation-wrong="Not quite. The middle of a box sits in the air for a tall vehicle, and the top corner is even higher. The bottom centre is where the wheels are.">
+            <h3 class="quiz-question">A car's box is tall, and its top edge flickers as the car moves. Which point should decide whether the car is on the road?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The centre of the box</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The bottom centre of the box, where the wheels touch the ground</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The top left corner of the box</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m1')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+      <section class="module" id="module-2" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">The spotter</h1>
+      <p class="module-subtitle">How a trained model finds a car in one picture, and how sure it is about what it found.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A model that has already seen many streets</h2>
+        <p>The spotter is a <span class="term" data-definition="A neural network is a program with millions of adjustable numbers, learned from examples. Here the examples were labelled photos.">neural network</span> called <span class="term" data-definition="YOLO stands for You Only Look Once. It is a family of detection models that finds every object in a picture in a single pass.">YOLO</span>. Someone else trained it on a large photo collection, so we do not train anything ourselves.</p>
+        <p>The trained numbers are stored in a file called the <span class="term" data-definition="The learned numbers inside a model. Loading the weights file gives you the trained model without retraining.">weights</span> file, here yolo26m.pt. The collection it learned from is called <span class="term" data-definition="COCO is a public photo collection, each photo labelled with 80 kinds of object. Many detection models are trained on it.">COCO</span>.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🚗</div>
+            <div>
+              <strong>car (class 2)</strong>
+              <p>Most of the traffic at this junction</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🛵</div>
+            <div>
+              <strong>motorcycle (class 3)</strong>
+              <p>Small and often missed, a known weak spot</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-4)">🚌</div>
+            <div>
+              <strong>bus (class 5)</strong>
+              <p>Large, so usually easy to see</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-5)">🚚</div>
+            <div>
+              <strong>truck (class 7)</strong>
+              <p>Large, sometimes confused with a bus</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Every detection has three parts</h2>
+        <p>For each car it finds, the spotter returns a box around it, a class, and a <span class="term" data-definition="A number from 0 to 1 that the model gives each detection. Higher means it is more sure the object is really there and of that class.">confidence</span> score.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>The box</strong>
+              <p>Four numbers: the left, top, right and bottom edges, in pixels.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>The class</strong>
+              <p>Car, bus, truck or motorcycle, as a number from the model's list.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>The confidence</strong>
+              <p>How sure the model is, from 0 to 1.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔎</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why keep the unsure ones?</strong>
+            <p>The pipeline keeps detections down to a confidence of 0.10, on purpose. The tracker uses those weaker boxes to keep a car going between frames, so throwing them away early would cut cars short.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The code that asks the model</h2>
+        <p>One call to the model handles a whole frame. Every setting it uses comes from config/pipeline.yaml, not from the code.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">res = self.model.predict(</span>
+<span class="code-line">    frame, imgsz=self.cfg["imgsz"], conf=self.cfg["conf"], iou=self.cfg["iou"],</span>
+<span class="code-line">    classes=self.cfg["vehicle_classes"], device=self.cfg["device"], verbose=False,</span>
+<span class="code-line">)[0]</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Give the model one picture and ask it to look for objects in it.</p>
+              <p class="tl">Shrink the picture to the size set in the config, then discard anything below the confidence floor.</p>
+              <p class="tl">Only look for the vehicle classes listed in the config, and run on the Mac's graphics chip.</p>
+              <p class="tl">Take the result for this one picture, which is the first item in the list.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Bigger is slower, but sees more</strong>
+            <p>imgsz sets the size the model looks at, 1280 pixels on the long side here. The camera frame is 3840 pixels wide, so the picture is shrunk to a third. Small, far-away cars lose detail in that shrink.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">What the spotter sees, and what it misses</h2>
+        <p>The spotter is good at some cars and weak at others. Knowing which is which tells you where the rest of the pipeline has to help.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">✅</div>
+            <h4 class="pattern-title">Near cars</h4>
+            <p class="pattern-desc">Large and clear, so the confidence is high and the box is steady.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">🔭</div>
+            <h4 class="pattern-title">Far cars</h4>
+            <p class="pattern-desc">Small and faint. The spotter sees them, but only just, with low confidence.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🙈</div>
+            <h4 class="pattern-title">Hidden cars</h4>
+            <p class="pattern-desc">A car behind a bus has no picture to find, so nothing is detected for a while.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🛵</div>
+            <h4 class="pattern-title">Motorcycles</h4>
+            <p class="pattern-desc">Small and thin, so the spotter misses many of them. This is a known issue, and it is deferred.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m2">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Low-confidence boxes can help a car already being followed stay on track, but a brand new track needs a higher score. That is why keeping the weak boxes matters."
+               data-explanation-wrong="Not quite. Weak boxes are still useful: they can keep an existing track alive. What they cannot do is start a new track on their own.">
+            <h3 class="quiz-question">The spotter reports a car at confidence 0.15. Which of these describes what the tracker can do with that box?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Throw it away, because it is below any useful score</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Use it to continue a car it is already following, but not to start a new track</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Start a new track with it straight away</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. A bigger input gives small cars more pixels, but each frame takes longer. That is a trade-off between speed and detail."
+               data-explanation-wrong="Not quite. Lowering the threshold adds noise, and cropping throws away the cars you want to see. Making the model's input bigger is the lever that costs time.">
+            <h3 class="quiz-question">Cars at the far end of the junction are often missed. Which change is most likely to help, and what does it cost?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Lower the confidence threshold to 0.01. Nothing else changes.</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Raise imgsz so small cars get more pixels. Each frame takes longer.</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Crop the far end out of the picture. It is faster and loses nothing.</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Class numbers are scene settings, so they belong in config, where the code reads them. The model itself does not need changing."
+               data-explanation-wrong="Not quite. Retraining is not needed, because the model already knows these classes. The class list is a scene setting, so it lives in config, not in the code.">
+            <h3 class="quiz-question">You want the count to include buses but not trucks. Where should that change go?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Edit the number inside detect.py</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Change vehicle_classes in config/pipeline.yaml</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Retrain the model on buses only</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m2')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+      <section class="module" id="module-3" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">Name badges</h1>
+      <p class="module-subtitle">How the tracker gives one car the same ID in every frame, and what makes it lose that ID.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The spotter forgets everything</h2>
+        <p>The spotter looks at each picture alone. It has no idea that the car in frame 300 is the same car as in frame 301.</p>
+        <p>The <span class="term" data-definition="The program that gives each object a consistent ID across frames. Here it is ByteTrack, from the supervision library.">tracker</span> adds that memory. It gives every car a <span class="term" data-definition="A number that stays attached to one object from frame to frame. Same car, same number. Different car, different number.">track ID</span>, which we can think of as a name badge.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🏷</div>
+          <div class="callout-content">
+            <strong class="callout-title">How the tracker decides it is the same car</strong>
+            <p>It predicts where each car should be in the next frame, using its recent motion. Then it matches each new box to the nearest prediction that makes sense.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A conversation between the actors</h2>
+        <p>Press Next to watch a made-up example, shown for teaching, not a real log. A bus hides a car for a moment, and the tracker has to decide what to do.</p>
+
+        <div class="chat-window" id="chat-m3">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="spotter" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Spotter</span>
+                <p>Frame 300: I see a bus at 0.91, and a car behind it at 0.82.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="tracker" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">T</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Tracker</span>
+                <p>Both are new to me. I will give each one a fresh badge.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="spotter" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Spotter</span>
+                <p>Frame 340: the bus is still there, but I cannot see the car behind it any more.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="tracker" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">T</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Tracker</span>
+                <p>I will keep that car's badge for about 30 frames, in case it comes back where I expect.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="spotter" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Spotter</span>
+                <p>Frame 352: the car is back, and I see it at 0.88.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="editor" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">E</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">Editor</span>
+                <p>If the tracker gave it a new badge, I can join the two pieces afterwards.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-typing" style="display:none">
+            <div class="chat-avatar" id="typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The code that hands out badges</h2>
+        <p>Every frame goes to the tracker, one at a time, in order. The tracker returns the same boxes, now with an ID attached.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">det = tracker.update_with_detections(det)</span>
+<span class="code-line">det = det[det.tracker_id != -1]</span>
+<span class="code-line">if len(det) == 0:</span>
+<span class="code-line">    continue</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Give the tracker this frame's boxes. It returns them with badges where it has matched them.</p>
+              <p class="tl">Keep only the boxes that now have a badge. The rest are not confirmed yet.</p>
+              <p class="tl">If nothing is left, there is nothing to record for this frame.</p>
+              <p class="tl">Move on to the next frame.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Empty frames still matter</strong>
+            <p>When a frame has no cars at all, the code still sends the tracker an empty set of boxes. The tracker counts frames to decide when a badge has expired, so skipping a frame would make it wrong.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The three settings that decide a badge's life</h2>
+        <p>Three numbers in config/pipeline.yaml control when a badge is handed out and when it is taken back.</p>
+
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">track_activation_threshold: 0.25</code>
+            <span class="badge-desc">A new car needs a score of 0.25 plus 0.1, which is 0.35, before it gets a badge. Weak boxes can still keep an existing car going.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">lost_track_buffer: 30</code>
+            <span class="badge-desc">A car that disappears keeps its badge for 30 frames, about one second. After that the badge is retired.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">minimum_matching_threshold: 0.8</code>
+            <span class="badge-desc">How well a new box has to line up with a prediction before the tracker accepts it as the same car.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m3">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The tracker only remembers a lost car for about one second. When the car reappears, it is treated as new. That is why the editor, covered in the next module, tries to join the pieces back together."
+               data-explanation-wrong="Not quite. The tracker keeps a lost badge for only 30 frames, about one second. After that the badge is retired, and the car starts again with a new one.">
+            <h3 class="quiz-question">A car drives behind a bus for two seconds, about 60 frames. What is most likely to happen to its track?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It keeps the same ID, because the tracker never forgets a car</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The track ends after about a second, and the car comes back with a new ID</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The car is deleted from the video and never appears again</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. A longer memory gives more chances to rejoin a car, but it also gives a stale badge more chances to be attached to the wrong car. Earlier tests showed that 45 and 60 frames gave no real gain."
+               data-explanation-wrong="Not quite. Keeping badges longer helps with hidden cars, but it also means an old badge can be matched to a different car. Tests on this footage showed no real gain from going past 30 frames.">
+            <h3 class="quiz-question">You want fewer name changes, so you raise lost_track_buffer to 300 frames. What is the trade-off?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>There is no trade-off. A longer memory is strictly better.</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>A stale badge can be matched to the wrong car more often, because it stays alive longer</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The video takes longer to render, and nothing else changes</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. A lost badge expires after a count of frames. If empty frames were skipped, the count would be wrong and badges would last too long."
+               data-explanation-wrong="Not quite. The tracker measures time in frames, so every frame has to pass through it, even empty ones. Skipping frames would throw off its count.">
+            <h3 class="quiz-question">Why does the code send the tracker a frame with no cars in it?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>To waste a little time, so the video looks smoother</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The tracker counts frames, so skipping empty ones would make its clock wrong</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The detector always finds at least one car in every frame</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m3')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+      <section class="module" id="module-4" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">The film editor</h1>
+      <p class="module-subtitle">Raw tracks are messy. The editor throws away parked cars, joins broken pieces and steadies the boxes.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Keep only the cars on the road</h2>
+        <p>The tracker follows everything, including parked cars. The road test decides which tracks to keep, using the <span class="term" data-definition="The middle of the bottom edge of a box. It is where the wheels touch the road, so it is the best point to judge whether a car is on the ground.">bottom centre</span> of each box, the point where a car meets the ground.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">on_road = points_inside(traj[["anchor_x", "anchor_y"]].to_numpy(), polygons)</span>
+<span class="code-line">fraction = pd.Series(on_road, index=traj.index).groupby(traj.track_id).mean()</span>
+<span class="code-line">keep = fraction[fraction &gt;= min_fraction].index</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For every box, mark True if its bottom centre is inside the road outline, otherwise False.</p>
+              <p class="tl">For each track, average those True and False marks. That gives the share of its frames spent on the road.</p>
+              <p class="tl">Keep the tracks where that share is at least the minimum, which is 0.5 in the config.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why judge the whole track?</strong>
+            <p>A car on the kerb edge would flicker in and out of the outline frame by frame. Judging each track as a whole keeps one continuous track for that car.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Six cuts, in order</h2>
+        <p>After the road test, the editor makes six passes over each track. Each one fixes a different problem.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Vote on the class</strong>
+              <p>A track is sometimes called a car and sometimes a truck. The <span class="term" data-definition="The kind of object a box is: car, bus, truck or motorcycle, as the spotter labelled it.">class</span> with the most total confidence wins, for the whole track.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Stitch broken tracks</strong>
+              <p>Join a track's end to another track's start, if they are very likely the same car.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Vote on the class again</strong>
+              <p>Joined tracks can disagree, so the vote is run once more.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>Fill short holes</strong>
+              <p>Where a car was missed for a few frames, draw its box in between, <span class="term" data-definition="Estimating the missing values from the values on either side of the gap. Here, the box moves in a straight line from the last sighting to the next one.">on a straight line</span>.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <strong>Drop fragments</strong>
+              <p>Tracks shorter than 15 frames, about half a second, are too short to be a real car.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">6</div>
+            <div class="step-body">
+              <strong>Steady the boxes</strong>
+              <p>Average each box over neighbouring frames, so it glides rather than jitters.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Joining a broken track</h2>
+        <p>When a car's badge is lost and then handed out again, the editor checks whether the two pieces fit. It predicts where the first piece should be when the second begins, and then measures how far off it is.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">err = (err_fwd + err_bwd) / 2</span>
+<span class="code-line">if err &lt;= cfg["stitch_base_tol_px"] + cfg["stitch_tol_per_frame_px"] * gap:</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Average the two prediction errors, one from each direction in time.</p>
+              <p class="tl">The longer the gap, the more the car could have moved, so the allowed error grows with the gap.</p>
+              <p class="tl">Only join if the error is inside that allowance.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🚙</div>
+            <h4 class="pattern-title">Same class</h4>
+            <p class="pattern-desc">A car is never joined to a bus.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">📏</div>
+            <h4 class="pattern-title">Close enough</h4>
+            <p class="pattern-desc">The predicted position must match, within a <span class="term" data-definition="How far off a prediction is allowed to be and still count as a match. Here it is measured in pixels on the full-size frame.">tolerance</span> of 60 pixels plus 3 per missing frame.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">⚖️</div>
+            <h4 class="pattern-title">No close rival</h4>
+            <p class="pattern-desc">If two candidates are about equally good, the editor joins neither.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why the rival check matters</strong>
+            <p>Cars stopped in a queue look almost identical and sit close together. Joining the wrong pair would swap two cars, so the editor refuses to guess.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Steadying the boxes</h2>
+        <p>Detected boxes wobble by a few pixels from frame to frame. The editor takes a <span class="term" data-definition="The average of a fixed number of neighbouring values, sliding along the sequence. It smooths out short wobbles but keeps slow changes.">rolling average</span> over neighbouring frames, so the box moves smoothly.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">cx, cy = roll(cx, box_window), roll(cy, box_window)</span>
+<span class="code-line">w, h = roll(w, size_window), roll(h, size_window)</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Average the centre of each box over about 7 frames, centred on the frame being fixed.</p>
+              <p class="tl">Average the width and height over a longer window, about 15 frames, so the size settles more slowly.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m4">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Stopped cars look alike, so a wrong join would swap two cars. Skipping is safer than guessing."
+               data-explanation-wrong="Not quite. In a queue the nearest car is often the wrong one, so the editor refuses to guess when a rival is nearly as close.">
+            <h3 class="quiz-question">Two cars wait side by side at a red light. The editor finds two possible partners for one track, both about equally close. What does it do?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Joins to the closer one, even by a small margin</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Makes no join, because the choice is ambiguous</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Joins both partners to the same track</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The road test judges the whole track. Below half, the whole track is dropped, so a car that only grazes the outline does not come and go."
+               data-explanation-wrong="Not quite. The rule judges the whole track, not single boxes. A track on the road for less than half its frames is dropped entirely.">
+            <h3 class="quiz-question">A car runs along the kerb, and its box is on the road for only 30 percent of its frames. What happens to its track?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It is kept, because some of its frames were on the road</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It is dropped entirely, because it is under half</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Only its 30 percent of on-road boxes are kept</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. Averaging blends neighbouring frames, so random wobble cancels out while steady motion survives."
+               data-explanation-wrong="Not quite. A short rolling average keeps real motion, which changes slowly, and evens out the random wobble from one frame to the next.">
+            <h3 class="quiz-question">A box jitters a few pixels each frame, but the car is moving steadily. What does the rolling average do to the track?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It removes the car's real movement along with the jitter</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It evens out the jitter and keeps the steady movement</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It changes the car's class from car to truck</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m4')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+      <section class="module" id="module-5" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">The saved game</h1>
+      <p class="module-subtitle">Why the slow step is saved, what each output file holds, and what is still open.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Save the slow part</h2>
+        <p>Detection is the slow step. On the 30-second test run it takes about 0.13 seconds per frame, so the full 21-minute video would take about 84 minutes.</p>
+        <p>The program keeps those detections in a <span class="term" data-definition="A stored copy of work already done, so it does not have to be done again. Here, the detections are the expensive part to redo.">cache</span>. Every later stage reads that copy, so it can be run again in seconds.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">👁</div>
+            <h4 class="pattern-title">Detect</h4>
+            <p class="pattern-desc">Slow, about 84 minutes for the full video. Saved to a file when done.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🏷</div>
+            <h4 class="pattern-title">Track</h4>
+            <p class="pattern-desc">Reads the saved detections, runs in seconds.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">✂️</div>
+            <h4 class="pattern-title">Smooth</h4>
+            <p class="pattern-desc">Reads the raw tracks, runs in seconds.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">🎬</div>
+            <h4 class="pattern-title">Render</h4>
+            <p class="pattern-desc">Draws the boxes on a copy of the video. Takes minutes, not hours.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One command, four stages</h2>
+        <p>The run command runs the whole <span class="term" data-definition="A chain of processing steps, where each step takes the previous step output as its input.">pipeline</span>: all four stages. Each one writes its output, and the next one picks it up.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">do_detect(args.video, args.start_frame, args.end_frame, p["dets"])</span>
+<span class="code-line">do_track(args.video, p["dets"], p["raw"])</span>
+<span class="code-line">do_smooth(args.video, p["raw"], p["smooth"])</span>
+<span class="code-line">do_render(args.video, p["raw"], p["raw_video"], args.debug_height, "RAW")</span>
+<span class="code-line">do_render(args.video, p["smooth"], p["smooth_video"], args.debug_height, "SMOOTHED")</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">First, spot the cars in every frame in the range, and save those detections.</p>
+              <p class="tl">Next, follow the cars and save the raw tracks, before any clean-up.</p>
+              <p class="tl">Then run the editor, and save the cleaned tracks next to the raw ones.</p>
+              <p class="tl">Draw a video from the raw tracks, so you can compare it with the editor's version.</p>
+              <p class="tl">Draw a second video from the cleaned tracks.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One row, one car, one frame</h2>
+        <p>Every output file is a <span class="term" data-definition="Parquet is a compact file format for tables. It stores each column together, loads quickly, and keeps each column type fixed.">Parquet</span> table. Each row is one car in one frame, with the same columns in every file. Those columns are a fixed contract.</p>
+
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">frame_idx</code>
+            <span class="badge-desc">Which frame of the video this row belongs to, counted from zero.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">timestamp_s</code>
+            <span class="badge-desc">When that frame happened, in seconds, taken from the video file.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">track_id</code>
+            <span class="badge-desc">The name badge. The same car keeps the same number across its rows.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">class_name</code>
+            <span class="badge-desc">What the car is, such as car, bus or truck.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">anchor_x, anchor_y</code>
+            <span class="badge-desc">The bottom centre of the box, where the car meets the road. Used for every road calculation.</span>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">📦</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why store the settings with the output</strong>
+            <p>Each file records the frame range, the frame rate read from the video, and the model used. Six months from now, you can tell what produced it.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Where the project stands</h2>
+        <p>The chain works end to end on a 30-second test. Some problems are known and not yet fixed.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-4)">🛵</div>
+            <div>
+              <strong>Motorcycles are often missed</strong>
+              <p>Deferred. The spotter needs more detail to see them.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🔭</div>
+            <div>
+              <strong>Cars at the top of the frame start late</strong>
+              <p>The spotter sees them earlier, but with low confidence, so the tracker does not start them until later.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🙈</div>
+            <div>
+              <strong>Hidden cars lose their badge</strong>
+              <p>Stitching bridges gaps of up to 2 seconds. Longer hiding is not fixed yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m5">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Detections are saved before any filtering, so the road outline only matters from the track stage on. The slow step is not repeated."
+               data-explanation-wrong="Not quite. Detection is saved before any filtering, so it does not depend on the road outline. Only the track stage and the stages after it need to run again.">
+            <h3 class="quiz-question">You change the road outline. Which stage do you need to run again?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Detect, from the start, which takes about 84 minutes</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Track onward, which takes seconds, using the saved detections</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Nothing, because the outline is only drawn on the video</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. The raw tracks are kept on purpose. Re-running only the smoothing takes seconds and writes its own file, so you can compare the two results."
+               data-explanation-wrong="Not quite. The raw track file is kept so you can try a new smoothing setting cheaply. Re-running the smooth stage writes its own file and leaves the earlier one for comparison.">
+            <h3 class="quiz-question">You want to try a different smoothing setting on the 30-second run. What is the cheapest correct way?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Run the whole pipeline again from the video</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Run only the smooth stage on the saved raw tracks, with a new output name</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Open the saved parquet file and edit the numbers by hand</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The frame rate is read from the video file and stored with the output. A hard-coded 30 would quietly be wrong for a recording at a different rate."
+               data-explanation-wrong="Not quite. The project's rule is that the frame rate comes from the video file, never from an assumed number. Hard-coding 30 breaks that for any recording at a different rate.">
+            <h3 class="quiz-question">A teammate hard-codes 30 frames per second into the code, saying it is simpler. Which project rule does this break?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No rule. Hard-coding a number is always fine for a fixed camera.</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The rule that the frame rate must be read from the video file, not assumed</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The rule that the output table must never have more than seven columns</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m5')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+  </main>
+
+</body>
+</html>

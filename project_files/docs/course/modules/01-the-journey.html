@@ -1,0 +1,257 @@
+      <section class="module" id="module-1" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">What happens to one video</h1>
+      <p class="module-subtitle">Follow the program from a 21-minute recording of a junction to a finished, annotated video.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">What this program does</h2>
+        <p>A camera on the 20th floor recorded this junction for about 21 minutes. The program goes through every <span class="term" data-definition="One still picture in the video. Video is just many of these shown one after another, about 30 each second.">frame</span> and writes down each vehicle it sees: where it is, what kind it is, and when it was there.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">👁</div>
+            <h4 class="pattern-title">Spot</h4>
+            <p class="pattern-desc">Find the cars in each picture.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🏷</div>
+            <h4 class="pattern-title">Follow</h4>
+            <p class="pattern-desc">Give each car the same name tag in every picture it appears in.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">✂️</div>
+            <h4 class="pattern-title">Clean</h4>
+            <p class="pattern-desc">Drop parked cars and fill in the gaps where a car briefly vanished.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">🎬</div>
+            <h4 class="pattern-title">Show</h4>
+            <p class="pattern-desc">Draw the boxes on a copy of the video so you can check the work with your own eyes.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The whole chain, as a flow</h2>
+        <p>Press Next Step to send one piece of work down the line. Each actor does one job and passes the result on.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"The video file holds every frame, in order"},
+          {"highlight":"flow-actor-1","label":"Each frame goes to the spotter","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"The spotter boxes every car it sees in this frame","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"Name badges link each box to a car from earlier frames","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-4","label":"The editor drops parked cars and joins broken tracks","packet":true,"from":"actor-4","to":"actor-5"},
+          {"highlight":"flow-actor-5","label":"The renderer draws the result onto a copy of the video"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">🎞</div>
+              <span>Video file</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">👁</div>
+              <span>Spotter</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">🏷</div>
+              <span>Name badges</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">✂️</div>
+              <span>Editor</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">🎬</div>
+              <span>Renderer</span>
+            </div>
+          </div>
+
+          <div class="flow-packet" id="flow-packet"></div>
+
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Each frame needs a time, from the file</h2>
+        <p>Speed comes from time, so every frame needs a correct time stamp. The program reads the times that the camera wrote into the file, and does not assume a fixed rate.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">gaps = np.diff(pts)</span>
+<span class="code-line">if gaps.min() &lt;= 0 or gaps.max() &gt; 1.5 * np.median(gaps):</span>
+<span class="code-line">    raise ValueError(f"unexpected frame gaps in ticks: ...")</span>
+<span class="code-line">return (pts - pts[0]) * num / den</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Measure the gap between every pair of neighbouring frames.</p>
+              <p class="tl">If any gap is zero or negative, or far longer than normal, a frame has gone missing or been repeated.</p>
+              <p class="tl">In that case, stop with an error rather than hand back wrong times.</p>
+              <p class="tl">Otherwise, count from the first frame and convert the ticks into seconds.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why not just use 30 frames per second?</strong>
+            <p>Frames are not spaced evenly. Gaps vary by about 5 percent, and an assumed rate drifts away from the real clock with no warning.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Reading frames in order</h2>
+        <p>The program reads the video one frame at a time, from the start. It skips ahead by reading past frames without turning them into pictures, because that is faster.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">for idx in range(start_frame, end_frame):</span>
+<span class="code-line">    ok, frame = cap.read()</span>
+<span class="code-line">    if not ok:</span>
+<span class="code-line">        return</span>
+<span class="code-line">    yield idx, frame</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For each frame number in the range we want.</p>
+              <p class="tl">Ask the video reader for the next picture. It also says whether the read worked.</p>
+              <p class="tl">If the read failed, the video has run out, so stop cleanly.</p>
+              <p class="tl">Otherwise, hand back the frame number and the picture, one at a time, so memory stays small.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Where things live</h2>
+        <p>The project is split into a few folders. Each one has one job, which keeps the code easy to find.</p>
+
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">src/trafficflow/</span>
+            <span class="ft-desc">The pipeline code itself</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">video.py</span><span class="ft-desc">Reads frames and timestamps</span></div>
+              <div class="ft-file"><span class="ft-name">detect.py</span><span class="ft-desc">The spotter (YOLO model)</span></div>
+              <div class="ft-file"><span class="ft-name">track.py</span><span class="ft-desc">Name badges (ByteTrack)</span></div>
+              <div class="ft-file"><span class="ft-name">smooth.py</span><span class="ft-desc">The editor: stitching and clean-up</span></div>
+              <div class="ft-file"><span class="ft-name">render.py</span><span class="ft-desc">Draws boxes onto a copy of the video</span></div>
+              <div class="ft-file"><span class="ft-name">cli.py</span><span class="ft-desc">The commands you type in the terminal</span></div>
+            </div>
+          </div>
+          <div class="ft-folder">
+            <span class="ft-name">config/</span>
+            <span class="ft-desc">Every scene-specific number lives here, not in the code</span>
+          </div>
+          <div class="ft-folder">
+            <span class="ft-name">scripts/</span>
+            <span class="ft-desc">Small helpers, such as the road picker</span>
+          </div>
+          <div class="ft-folder">
+            <span class="ft-name">data/</span>
+            <span class="ft-desc">The video (never edited) and the saved outputs</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m1">
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. The camera's clock keeps running even when a frame is lost, but a frame count does not. That is why the code reads the file's own times."
+               data-explanation-wrong="Not quite. A missing frame shifts the position of every later frame in the count, so every later time is off. The file's own timestamps are the fix.">
+            <h3 class="quiz-question">A 20-minute recording loses one frame in the middle. A colleague computes time as frame number divided by 30. What happens to every time after the lost frame?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Nothing changes, because one frame is too small to matter</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Only the lost frame is wrong</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Every later time is shifted, because frame numbers no longer match real time</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. One gap is noise from the camera, so averaging over several frames gives a steadier number."
+               data-explanation-wrong="Not quite. Rounding hides the jump but does not remove it. Smoothing over several frames is what the project rules call for.">
+            <h3 class="quiz-question">Your speed readings jump up and down by a few percent from one frame to the next. What is the right fix?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Round every speed to a whole number</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Average the speed over several frames before reporting it</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Buy a camera with a higher frame rate, so the jumps go away</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The bottom centre is the closest point in the picture to where the car touches the road. The middle of a tall box floats above the road."
+               data-explanation-wrong="Not quite. The middle of a box sits in the air for a tall vehicle, and the top corner is even higher. The bottom centre is where the wheels are.">
+            <h3 class="quiz-question">A car's box is tall, and its top edge flickers as the car moves. Which point should decide whether the car is on the road?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The centre of the box</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The bottom centre of the box, where the wheels touch the ground</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The top left corner of the box</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m1')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

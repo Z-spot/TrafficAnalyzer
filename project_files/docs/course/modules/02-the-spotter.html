@@ -1,0 +1,225 @@
+      <section class="module" id="module-2" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">The spotter</h1>
+      <p class="module-subtitle">How a trained model finds a car in one picture, and how sure it is about what it found.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A model that has already seen many streets</h2>
+        <p>The spotter is a <span class="term" data-definition="A neural network is a program with millions of adjustable numbers, learned from examples. Here the examples were labelled photos.">neural network</span> called <span class="term" data-definition="YOLO stands for You Only Look Once. It is a family of detection models that finds every object in a picture in a single pass.">YOLO</span>. Someone else trained it on a large photo collection, so we do not train anything ourselves.</p>
+        <p>The trained numbers are stored in a file called the <span class="term" data-definition="The learned numbers inside a model. Loading the weights file gives you the trained model without retraining.">weights</span> file, here yolo26m.pt. The collection it learned from is called <span class="term" data-definition="COCO is a public photo collection, each photo labelled with 80 kinds of object. Many detection models are trained on it.">COCO</span>.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🚗</div>
+            <div>
+              <strong>car (class 2)</strong>
+              <p>Most of the traffic at this junction</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🛵</div>
+            <div>
+              <strong>motorcycle (class 3)</strong>
+              <p>Small and often missed, a known weak spot</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-4)">🚌</div>
+            <div>
+              <strong>bus (class 5)</strong>
+              <p>Large, so usually easy to see</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-5)">🚚</div>
+            <div>
+              <strong>truck (class 7)</strong>
+              <p>Large, sometimes confused with a bus</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Every detection has three parts</h2>
+        <p>For each car it finds, the spotter returns a box around it, a class, and a <span class="term" data-definition="A number from 0 to 1 that the model gives each detection. Higher means it is more sure the object is really there and of that class.">confidence</span> score.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>The box</strong>
+              <p>Four numbers: the left, top, right and bottom edges, in pixels.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>The class</strong>
+              <p>Car, bus, truck or motorcycle, as a number from the model's list.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>The confidence</strong>
+              <p>How sure the model is, from 0 to 1.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔎</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why keep the unsure ones?</strong>
+            <p>The pipeline keeps detections down to a confidence of 0.10, on purpose. The tracker uses those weaker boxes to keep a car going between frames, so throwing them away early would cut cars short.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The code that asks the model</h2>
+        <p>One call to the model handles a whole frame. Every setting it uses comes from config/pipeline.yaml, not from the code.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">res = self.model.predict(</span>
+<span class="code-line">    frame, imgsz=self.cfg["imgsz"], conf=self.cfg["conf"], iou=self.cfg["iou"],</span>
+<span class="code-line">    classes=self.cfg["vehicle_classes"], device=self.cfg["device"], verbose=False,</span>
+<span class="code-line">)[0]</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Give the model one picture and ask it to look for objects in it.</p>
+              <p class="tl">Shrink the picture to the size set in the config, then discard anything below the confidence floor.</p>
+              <p class="tl">Only look for the vehicle classes listed in the config, and run on the Mac's graphics chip.</p>
+              <p class="tl">Take the result for this one picture, which is the first item in the list.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Bigger is slower, but sees more</strong>
+            <p>imgsz sets the size the model looks at, 1280 pixels on the long side here. The camera frame is 3840 pixels wide, so the picture is shrunk to a third. Small, far-away cars lose detail in that shrink.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">What the spotter sees, and what it misses</h2>
+        <p>The spotter is good at some cars and weak at others. Knowing which is which tells you where the rest of the pipeline has to help.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">✅</div>
+            <h4 class="pattern-title">Near cars</h4>
+            <p class="pattern-desc">Large and clear, so the confidence is high and the box is steady.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">🔭</div>
+            <h4 class="pattern-title">Far cars</h4>
+            <p class="pattern-desc">Small and faint. The spotter sees them, but only just, with low confidence.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🙈</div>
+            <h4 class="pattern-title">Hidden cars</h4>
+            <p class="pattern-desc">A car behind a bus has no picture to find, so nothing is detected for a while.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🛵</div>
+            <h4 class="pattern-title">Motorcycles</h4>
+            <p class="pattern-desc">Small and thin, so the spotter misses many of them. This is a known issue, and it is deferred.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m2">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Low-confidence boxes can help a car already being followed stay on track, but a brand new track needs a higher score. That is why keeping the weak boxes matters."
+               data-explanation-wrong="Not quite. Weak boxes are still useful: they can keep an existing track alive. What they cannot do is start a new track on their own.">
+            <h3 class="quiz-question">The spotter reports a car at confidence 0.15. Which of these describes what the tracker can do with that box?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Throw it away, because it is below any useful score</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Use it to continue a car it is already following, but not to start a new track</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Start a new track with it straight away</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. A bigger input gives small cars more pixels, but each frame takes longer. That is a trade-off between speed and detail."
+               data-explanation-wrong="Not quite. Lowering the threshold adds noise, and cropping throws away the cars you want to see. Making the model's input bigger is the lever that costs time.">
+            <h3 class="quiz-question">Cars at the far end of the junction are often missed. Which change is most likely to help, and what does it cost?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Lower the confidence threshold to 0.01. Nothing else changes.</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Raise imgsz so small cars get more pixels. Each frame takes longer.</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Crop the far end out of the picture. It is faster and loses nothing.</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Class numbers are scene settings, so they belong in config, where the code reads them. The model itself does not need changing."
+               data-explanation-wrong="Not quite. Retraining is not needed, because the model already knows these classes. The class list is a scene setting, so it lives in config, not in the code.">
+            <h3 class="quiz-question">You want the count to include buses but not trucks. Where should that change go?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Edit the number inside detect.py</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Change vehicle_classes in config/pipeline.yaml</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Retrain the model on buses only</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m2')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

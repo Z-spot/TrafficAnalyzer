@@ -1,0 +1,242 @@
+      <section class="module" id="module-4" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">The film editor</h1>
+      <p class="module-subtitle">Raw tracks are messy. The editor throws away parked cars, joins broken pieces and steadies the boxes.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Keep only the cars on the road</h2>
+        <p>The tracker follows everything, including parked cars. The road test decides which tracks to keep, using the <span class="term" data-definition="The middle of the bottom edge of a box. It is where the wheels touch the road, so it is the best point to judge whether a car is on the ground.">bottom centre</span> of each box, the point where a car meets the ground.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">on_road = points_inside(traj[["anchor_x", "anchor_y"]].to_numpy(), polygons)</span>
+<span class="code-line">fraction = pd.Series(on_road, index=traj.index).groupby(traj.track_id).mean()</span>
+<span class="code-line">keep = fraction[fraction &gt;= min_fraction].index</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For every box, mark True if its bottom centre is inside the road outline, otherwise False.</p>
+              <p class="tl">For each track, average those True and False marks. That gives the share of its frames spent on the road.</p>
+              <p class="tl">Keep the tracks where that share is at least the minimum, which is 0.5 in the config.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why judge the whole track?</strong>
+            <p>A car on the kerb edge would flicker in and out of the outline frame by frame. Judging each track as a whole keeps one continuous track for that car.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Six cuts, in order</h2>
+        <p>After the road test, the editor makes six passes over each track. Each one fixes a different problem.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Vote on the class</strong>
+              <p>A track is sometimes called a car and sometimes a truck. The <span class="term" data-definition="The kind of object a box is: car, bus, truck or motorcycle, as the spotter labelled it.">class</span> with the most total confidence wins, for the whole track.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Stitch broken tracks</strong>
+              <p>Join a track's end to another track's start, if they are very likely the same car.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Vote on the class again</strong>
+              <p>Joined tracks can disagree, so the vote is run once more.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>Fill short holes</strong>
+              <p>Where a car was missed for a few frames, draw its box in between, <span class="term" data-definition="Estimating the missing values from the values on either side of the gap. Here, the box moves in a straight line from the last sighting to the next one.">on a straight line</span>.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <strong>Drop fragments</strong>
+              <p>Tracks shorter than 15 frames, about half a second, are too short to be a real car.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">6</div>
+            <div class="step-body">
+              <strong>Steady the boxes</strong>
+              <p>Average each box over neighbouring frames, so it glides rather than jitters.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Joining a broken track</h2>
+        <p>When a car's badge is lost and then handed out again, the editor checks whether the two pieces fit. It predicts where the first piece should be when the second begins, and then measures how far off it is.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">err = (err_fwd + err_bwd) / 2</span>
+<span class="code-line">if err &lt;= cfg["stitch_base_tol_px"] + cfg["stitch_tol_per_frame_px"] * gap:</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Average the two prediction errors, one from each direction in time.</p>
+              <p class="tl">The longer the gap, the more the car could have moved, so the allowed error grows with the gap.</p>
+              <p class="tl">Only join if the error is inside that allowance.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🚙</div>
+            <h4 class="pattern-title">Same class</h4>
+            <p class="pattern-desc">A car is never joined to a bus.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">📏</div>
+            <h4 class="pattern-title">Close enough</h4>
+            <p class="pattern-desc">The predicted position must match, within a <span class="term" data-definition="How far off a prediction is allowed to be and still count as a match. Here it is measured in pixels on the full-size frame.">tolerance</span> of 60 pixels plus 3 per missing frame.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">⚖️</div>
+            <h4 class="pattern-title">No close rival</h4>
+            <p class="pattern-desc">If two candidates are about equally good, the editor joins neither.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why the rival check matters</strong>
+            <p>Cars stopped in a queue look almost identical and sit close together. Joining the wrong pair would swap two cars, so the editor refuses to guess.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Steadying the boxes</h2>
+        <p>Detected boxes wobble by a few pixels from frame to frame. The editor takes a <span class="term" data-definition="The average of a fixed number of neighbouring values, sliding along the sequence. It smooths out short wobbles but keeps slow changes.">rolling average</span> over neighbouring frames, so the box moves smoothly.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">cx, cy = roll(cx, box_window), roll(cy, box_window)</span>
+<span class="code-line">w, h = roll(w, size_window), roll(h, size_window)</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Average the centre of each box over about 7 frames, centred on the frame being fixed.</p>
+              <p class="tl">Average the width and height over a longer window, about 15 frames, so the size settles more slowly.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your thinking</h2>
+
+        <div class="quiz-container" id="quiz-m4">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Stopped cars look alike, so a wrong join would swap two cars. Skipping is safer than guessing."
+               data-explanation-wrong="Not quite. In a queue the nearest car is often the wrong one, so the editor refuses to guess when a rival is nearly as close.">
+            <h3 class="quiz-question">Two cars wait side by side at a red light. The editor finds two possible partners for one track, both about equally close. What does it do?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Joins to the closer one, even by a small margin</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Makes no join, because the choice is ambiguous</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Joins both partners to the same track</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. The road test judges the whole track. Below half, the whole track is dropped, so a car that only grazes the outline does not come and go."
+               data-explanation-wrong="Not quite. The rule judges the whole track, not single boxes. A track on the road for less than half its frames is dropped entirely.">
+            <h3 class="quiz-question">A car runs along the kerb, and its box is on the road for only 30 percent of its frames. What happens to its track?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It is kept, because some of its frames were on the road</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It is dropped entirely, because it is under half</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Only its 30 percent of on-road boxes are kept</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. Averaging blends neighbouring frames, so random wobble cancels out while steady motion survives."
+               data-explanation-wrong="Not quite. A short rolling average keeps real motion, which changes slowly, and evens out the random wobble from one frame to the next.">
+            <h3 class="quiz-question">A box jitters a few pixels each frame, but the car is moving steadily. What does the rolling average do to the track?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It removes the car's real movement along with the jitter</span>
+              </button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It evens out the jitter and keeps the steady movement</span>
+              </button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It changes the car's class from car to truck</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-m4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-m4')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
